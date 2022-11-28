@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # #################################################
 # # Project: Grant_Aid
 # # Script purpose: Create table CR1015V (number of public swimming pools)

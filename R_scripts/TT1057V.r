@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # #################################################
 # # Project: Grant_Aid
 # # Script purpose: Create table: TT1057V (number of private cars)

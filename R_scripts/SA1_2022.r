@@ -93,7 +93,7 @@ enebolig <-enebolig_greier_videre %>%
     select(c('Region','value'))%>%
     mutate(value = value*0.0984) %>% #Ganger med den gjennomsnittlige valutakursen for nok til eur i 2021 (0.0984) 
     mutate_if(is.numeric,round, digits = 0) %>%
-    mutate(Reference_year = 2021, variable_code = 'SA1051V', Flags = '', Footnote = '') %>%
+    mutate(Reference_year = 2021, variable_code = 'SA1052V', Flags = '', Footnote = '') %>%
     relocate(Region, variable_code, Reference_year, value, Flags, Footnote) 
 enebolig
 
@@ -133,7 +133,7 @@ leilighet <- b %>%
     mutate(value = value*0.0984) %>% #Ganger med den gjennomsnittlige valutakursen for nok til eur i 2021 (0.0984) . 
     mutate_if(is.numeric,round, digits = 0) %>%
     select(c('Region','value'))%>%
-    mutate(Reference_year = 2021, variable_code = 'SA1052V', Flags = '', Footnote = '') %>%
+    mutate(Reference_year = 2021, variable_code = 'SA1053V', Flags = '', Footnote = '') %>%
     relocate(Region, variable_code, Reference_year, value, Flags, Footnote) 
 leilighet
 
@@ -183,7 +183,7 @@ a_bolig <- bolig %>%
 View(a_bolig)
 
 
-# Få riktig by-frmat fra Klass
+# Få riktig by-foSrmat fra Klass
 a_bolig$navn <- ApplyKlass(a_bolig$Region,
                                      klass = 131)
 

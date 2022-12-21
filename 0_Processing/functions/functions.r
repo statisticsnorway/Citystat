@@ -9,8 +9,8 @@
 #    and outputs a summary table.
 # Eg. sum_rows(Alder, "F00-04")
 
-sum_rows <- function(filter_by, filter_to) {
-    
+sum_rows_DE1 <- function(filter_by, filter_to) {
+
     x <- deparse(substitute(filter_by)) # creates a string
 
     df_DE1 %>%
@@ -24,7 +24,7 @@ sum_rows <- function(filter_by, filter_to) {
 #    and outputs a summary table.
 # Eg. filter_rows("F")
 
-filter_rows <- function(Alder_filter, Kjonn_filter) {
+filter_rows_DE1 <- function(Alder_filter, Kjonn_filter) {
 
     df_DE1 %>%
         filter(Alder == Alder_filter,

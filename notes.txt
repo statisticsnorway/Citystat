@@ -1,0 +1,21 @@
+1. DE1_tables
+    - intro to tables (demography, number of tables, data source, etc.)
+    - Data import and processing with API
+    
+            --> Note about other data sources:
+                    - Not every variable reported has Statbank as data source, either because it is incomplete or does not exist. 
+                    - In these cases the data processing steps become much more tedious:
+                        i) Reliant on communication across divisions and even departments,
+                        ii) Datafiles require more manipulation and hence knowledge about the data. 
+                    - In our experience, this can be very time consuming. 
+                    - Detail on code for producing tables can be found in Github
+    
+    - Run script (emphasise how fast it is)
+
+    - From output of all the tables that have been created and formatted correctly, select an example and present
+        
+2. Wrapping up: 
+    - In building the production line we have explored many different ways of structuring our processes. 
+    - In the current configuration, this is how we do it: 
+        Master_export.ipynb
+

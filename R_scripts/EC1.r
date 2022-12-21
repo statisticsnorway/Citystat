@@ -1,235 +1,224 @@
-###
-rm(list = ls())
+# #################################################
+# Project: Grant_Aid
+# Script purpose: Create tables EC1
+# Author: Hans Martin Corneliussen
+# #################################################
 
-getwd()
+# last inn pakker
 
-
-
-# last inn pakker  
-
-library(PxWebApiData) 
-library(tidyverse) 
+library(PxWebApiData)
+library(tidyverse)
 library(readxl)
+library(klassR)
 
-col_order <- c("City_code", "Reference_year", "Value", "Variable_code", "Flags", "Footnote")
-#my_data2 <- my_data[, col_order]
+# last inn funksjoner
 
+notebook_path <- getwd()
+setwd('..')
+base_path <- getwd()
+my_functions <- list.files(paste(base_path, "functions", sep = "/"),
+                      pattern = "*.r")
+for (i in my_functions) {
+    x <- paste(paste(base_path, "functions", sep = "/"), i, sep = "/")
+    suppressMessages(source(x))
+}
+setwd(notebook_path)
 
-#Persons employed, 20-64, total
-#EC1177V
+# last inn korrespondanse
 
-aktiv <- read_excel("/ssb/stamme01/bediv/project/CITYSTATISTICS/06040_20221109-180202.xlsx")
+city_correspondence <- GetKlass(550) %>%
+                    select(code, name)
 
-colnames(aktiv) <- c("kommnr", "kommnavn", "alder1", "alder2", "value")
-aktiv <- aktiv[,c("kommnr", "alder1", "value")]
-aktiv <- aktiv[c(4:21543),]
-aktiv <- aktiv  %>% fill(kommnr)
-aktiv$kommnr <- substring(aktiv$kommnr, 3)
-aktiv$value <- as.numeric(aktiv$value)
-aktiv$alder1 <- as.numeric(aktiv$alder1)
-aktiv <- aktiv[aktiv$alder1 >19 & aktiv$alder1 < 65 ,]
+#EC1177V - EC1179V
+#Persons employed, 20-64:
 
-aktiv <- aktiv[aktiv$kommnr == "0301" | aktiv$kommnr == "5001" |
-                 aktiv$kommnr == "1103" | aktiv$kommnr == "4601" ,]
+# import data and data setup
 
-aktiv <- aktiv %>%
-  group_by(kommnr) %>%
-  summarise(tot = sum(value))
-aktiv
+df_EC1177V <- read_excel("/ssb/stamme01/bediv/project/CITYSTATISTICS/06040_20221110-135541.xlsx")
 
+colnames(df_EC1177V) <- c("kommnr",
+                          "kommnavn",
+                          "alder1",
+                          "alder2",
+                          "male",
+                          "female")                # set column names
 
-#Persons employed, male/female
-aktivmf <- read_excel("/ssb/stamme01/bediv/project/CITYSTATISTICS/06040_20221110-135541.xlsx")
-#aktivmf <- read_excel("06040_20221110-135541.xlsx")
-aktivmf <- aktivmf[c(4:21544),]
+df_EC1177V <- df_EC1177V[c(5:21544), c("kommnr",
+                                       "alder1",
+                                       "male",
+                                       "female")]  # select rows and columns
 
-names(aktivmf) <- aktivmf[1,]
-aktivmf <- aktivmf[-1,]
+# fill kommnr column, substring and filter
 
-colnames(aktivmf) <- c("City_code", "kommnavn", "alder1", "alder2", "Menn", "Kvinner")
-aktivmf <- aktivmf  %>% fill(City_code)
-aktivmf$City_code <- substring(aktivmf$City_code, 3)
-aktivmf$alder1 <- as.numeric(aktivmf$alder1)
+df_EC1177V <- df_EC1177V %>% fill(kommnr)
+df_EC1177V$kommnr <- substring(df_EC1177V$kommnr, 3)
+df_EC1177V <- df_EC1177V %>%
+                    filter(kommnr %in% c("0301", "5001", "1103", "4601"))
 
-aktivmf <- aktivmf[aktivmf$alder1 >19 & aktivmf$alder1 < 65 ,]
+# change dtypes and filter to ages 20-64
 
-aktivmf <- aktivmf[aktivmf$City_code == "0301" | aktivmf$City_code == "5001" |
-                     aktivmf$City_code == "1103" | aktivmf$City_code == "4601" ,]
+df_EC1177V$male <- as.numeric(df_EC1177V$male)
+df_EC1177V$female <- as.numeric(df_EC1177V$female)
+df_EC1177V$alder1 <- as.numeric(df_EC1177V$alder1)
 
-aktivmf$Reference_year <- "2021"
+df_EC1177V <- df_EC1177V[df_EC1177V$alder1 >= 20 & df_EC1177V$alder1 <= 64, ]
 
-aktivmf$Kvinner <- as.numeric(aktivmf$Kvinner)
-aktivmf$Menn <- as.numeric(aktivmf$Menn)
+# create table EC1177V
 
+EC1177V <- df_EC1177V %>%
+              group_by(kommnr) %>%
+              summarise(Value = sum(male + female))
 
-aktivm <- aktivmf[,c("City_code", "Reference_year", "Menn")]
-aktivf <- aktivmf[,c("City_code", "Reference_year", "Kvinner")]
+EC1177V$navn <- ApplyKlass(EC1177V$kommnr, klass = 131)
 
-#Persons employed, 20-64, total
-#EC1177V
-# clear for rbind
-EC1177V <- aktivmf %>%
-  group_by(City_code, Reference_year) %>%
-  summarise(Value = sum(Menn+Kvinner))
-EC1177V
-EC1177V$Flags <- NA
-EC1177V$Footnote <- NA
-EC1177V$Variable_code <- "EC1177V"
+EC1177V_2021 <-  merge.data.frame(EC1177V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
 
-EC1177V$City_code <- case_when(EC1177V$City_code == "0301" ~ "NO001C", 
-                               EC1177V$City_code == "1103" ~ "NO002C",
-                               EC1177V$City_code == "4601" ~ "NO003C",
-                               EC1177V$City_code == "5001" ~ "NO004C")
+EC1177V_2021 <- table_formatting("EC1177V_2021")
 
+# create table EC1178V
 
-EC1177V <- EC1177V[, col_order]
+EC1178V <- df_EC1177V %>%
+              group_by(kommnr) %>%
+              summarise(Value = sum(male))
 
+EC1178V$navn <- ApplyKlass(EC1178V$kommnr, klass = 131)
 
-#Persons employed, 20-64, male
-#EC1178V
-# clear for rbind
+EC1178V_2021 <-  merge.data.frame(EC1178V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
 
-EC1178V <- aktivm %>%
-  group_by(City_code, Reference_year) %>%
-  summarise(Value = sum(Menn))
-EC1178V
-EC1178V$Flags <- NA
-EC1178V$Footnote <- NA
-EC1178V$Variable_code <- "EC1178V"
-EC1178V$City_code <- case_when(EC1178V$City_code == "0301" ~ "NO001C", 
-                               EC1178V$City_code == "1103" ~ "NO002C",
-                               EC1178V$City_code == "4601" ~ "NO003C",
-                               EC1178V$City_code == "5001" ~ "NO004C")
+EC1177V_2021 <- table_formatting("EC1177V_2021")
 
+# create table EC1179V
 
-EC1178V <- EC1178V[, col_order]
+EC1179V <- df_EC1177V %>%
+              group_by(kommnr) %>%
+              summarise(Value = sum(female))
 
+EC1179V$navn <- ApplyKlass(EC1179V$kommnr, klass = 131)
 
-#Persons employed, 20-64, female
-#EC1179V
-# clear for rbind
+EC1179V_2021 <-  merge.data.frame(EC1179V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
 
-EC1179V <- aktivf %>%
-  group_by(City_code, Reference_year) %>%
-  summarise(Value = sum(Kvinner))
-EC1179V
-EC1179V$Flags <- NA
-EC1179V$Footnote <- NA
-EC1179V$Variable_code <- "EC1179V"
-EC1179V$City_code <- case_when(EC1179V$City_code == "0301" ~ "NO001C", 
-                               EC1179V$City_code == "1103" ~ "NO002C",
-                               EC1179V$City_code == "4601" ~ "NO003C",
-                               EC1179V$City_code == "5001" ~ "NO004C")
+EC1177V_2021 <- table_formatting("EC1177V_2021")
 
-EC1179V <- EC1179V[, col_order]
+##########################################################################################################
 
-
-
-
-#Employment in agriculture, fishery (NACE Rev. 2: A)
 #EC2008V
-# clear for rbind
+#Employment in agriculture, fishery (NACE Rev. 2: A)
 
-sysagri <- ApiData(13472,
-                   ContentsCode = "SysselEtterBoste",
-                   Region = c('0301', '5001', '1103', '4601'),
-                   NACE2007 = "01-03",
-                   Tid = '2021')[[2]]
-sysagri$value <- as.numeric(sysagri$value)
-sysagri <- sysagri[sysagri$Sektor == "ALLE",]
-sysagri
-sysagri$Variable_code <- "EC2008V"
-sysagri$Flags <- NA
-sysagri$Footnote <- NA
+# import data with API
 
-EC2008V <- sysagri %>% select(Region, Tid, value, Variable_code, Flags, Footnote)
+df_EC2008V <- ApiData(13472,
+                      ContentsCode = "SysselEtterBoste",
+                      Region = c("0301", "5001", "1103", "4601"),
+                      NACE2007 = "01-03",
+                      Sektor = "ALLE",
+                      Tid = "2021")[[2]]
 
-colnames(EC2008V) <- c("City_code", "Reference_year", "Value", "Variable_code", "Flags", "Footnote")
+# create table (group_by and sum not needed here)
 
-EC2008V$City_code <- case_when(EC2008V$City_code == "0301" ~ "NO001C", 
-                               EC2008V$City_code == "1103" ~ "NO002C",
-                               EC2008V$City_code == "4601" ~ "NO003C",
-                               EC2008V$City_code == "5001" ~ "NO004C")
+EC2008V <- df_EC2008V %>%
+                rename(Value = value)
 
-#write.csv(EC2008V, "X:/320/1_regional/0_oppdrag/2022/2021-NO-CITY/Deliveries/EC2008V.csv")
+# apply klass and merge with correspondence
 
+EC2008V$navn <- ApplyKlass(EC2008V$Region, klass = 131)
 
+EC2008V_2021 <-  merge.data.frame(EC2008V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
 
+# table formatting
 
+EC2008V_2021 <- table_formatting("EC2008V_2021")
 
-#Employment in financial and insurance activities (NACE Rev. 2: K)
+##########################################################################################################
+
 #EC2034V
-EC2034V <- ApiData(08536,
-                  ContentsCode = "SysselBosted",
-                  Region = c('0301', '5001', '1103', '4601'),
-                  NACE2007 = "66",
-                  Tid = '2021')[[2]]
-EC2034V$value <- as.numeric(EC2034V$value)
+#Employment in financial and insurance activities (NACE Rev. 2: K)
 
-EC2034V <- EC2034V[EC2034V$Kjonn == "0",]
+# import data with API
 
-EC2034V <- EC2034V %>%
-  group_by(Region, Tid) %>%
-  summarise(Value = sum(value))
+df_EC2034V <- ApiData(08536,
+                      ContentsCode = "SysselBosted",
+                      Region =  c("0301", "5001", "1103", "4601"),
+                      NACE2007 = "66",
+                      Kjonn = "0",
+                      Tid = "2021")[[2]]
 
-EC2034V$Variable_code <- "EC2034V"
-EC2034V$Flags <- NA
-EC2034V$Footnote <- NA
+# create table
 
-names(EC2034V)[names(EC2034V) == "Region"] <- "City_code"
-names(EC2034V)[names(EC2034V) == "Tid"] <- "Reference_year"
+EC2034V <- df_EC2034V %>%
+                rename(Value = value)
 
-EC2034V$City_code <- case_when(EC2034V$City_code == "0301" ~ "NO001C", 
-                               EC2034V$City_code == "1103" ~ "NO002C",
-                               EC2034V$City_code == "4601" ~ "NO003C",
-                               EC2034V$City_code == "5001" ~ "NO004C")
+# apply klass and merge with correspondence
 
+EC2034V$navn <- ApplyKlass(EC2034V$Region, klass = 131)
 
+EC2034V_2021 <-  merge.data.frame(EC2034V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
 
+# table formatting
 
-#Employment in real estate activities (NACE Rev. 2: L)
+EC2034V_2021 <- table_formatting("EC2034V_2021")
+
+##########################################################################################################
+
 #EC2035V
-EC2035V <- ApiData(08536,
-                    ContentsCode = "SysselBosted",
-                    Region = c('0301', '5001', '1103', '4601'),
-                    NACE2007 = "68",
-                    Tid = '2021')[[2]]
+#Employment in real estate activities (NACE Rev. 2: L)
 
-EC2035V <- EC2035V[EC2035V$Kjonn == "0",]
+df_EC2035V <- ApiData(08536,
+                   ContentsCode = "SysselBosted",
+                   Region =  c("0301", "5001", "1103", "4601"),
+                   NACE2007 = "68",
+                   Kjonn = "0",
+                   Tid = "2021")[[2]]
 
-EC2035V <- EC2035V %>%
-  group_by(Region, Tid) %>%
-  summarise(Value = sum(value))
+# create table
 
-EC2035V$Variable_code <- "EC2035V"
-EC2035V$Flags <- NA
-EC2035V$Footnote <- NA
+EC2035V <- df_EC2035V %>%
+                rename(Value = value)
 
-names(EC2035V)[names(EC2035V) == "Region"] <- "City_code"
-names(EC2035V)[names(EC2035V) == "Tid"] <- "Reference_year"
+# apply klass and merge with correspondence
 
-EC2035V$City_code <- case_when(EC2035V$City_code == "0301" ~ "NO001C", 
-                               EC2035V$City_code == "1103" ~ "NO002C",
-                               EC2035V$City_code == "4601" ~ "NO003C",
-                               EC2035V$City_code == "5001" ~ "NO004C")
+EC2035V$navn <- ApplyKlass(EC2035V$Region, klass = 131)
+
+EC2035V_2021 <-  merge.data.frame(EC2035V,
+                                  city_correspondence,
+                                  by.x = "navn",
+                                  by.y = "name")
+
+# table formatting
+
+EC2035V_2021 <- table_formatting("EC2035V_2021")
 
 
+#######################################################################################################
 
+# START HERE:::
 
-#' Employment in construction (NACE Rev. 2: F)
-#EC2022V
-# clear for rbind
-EC2022V <- ApiData(08536,
-                ContentsCode = "SysselBosted",
-                Region = c('0301', '5001', '1103', '4601'),
-                NACE2007 = c("42", "43"),
-                Tid = '2021')[[2]]
+# EC2022V
+# Employment in construction (NACE Rev. 2: F)
 
-EC2022V <- EC2022V[EC2022V$Kjonn == "0",]
+df_EC2022V <- ApiData(08536,
+                      ContentsCode = "SysselBosted",
+                      Region = c("0301", "5001", "1103", "4601"),
+                      NACE2007 = c("42", "43"),
+                      Kjonn = "0",
+                      Tid = "2021")[[2]]
 
-EC2022V <- EC2022V %>%
-  group_by(Region, Tid) %>%
-  summarise(Value = sum(value))
+EC2022V <- df_EC2022V %>%
+                rename(Value = value)
 
 EC2022V$Variable_code <- "EC2022V"
 EC2022V$Flags <- NA
